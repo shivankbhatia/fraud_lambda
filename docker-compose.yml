@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  flink-jobmanager:
+    build: ./flink-job
+    image: fraud-lambda-flink:latest
+    container_name: flink-jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+    volumes:
+      - ./flink-job:/opt/flink-job
+
+  flink-taskmanager:
+    build: ./flink-job
+    image: fraud-lambda-flink:latest
+    container_name: flink-taskmanager
+    depends_on:
+      - flink-jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 2
+        taskmanager.memory.process.size: 1024m
+    volumes:
+      - ./flink-job:/opt/flink-job
+
+  hive-metastore-db:
+    image: postgres:13
+    container_name: hive-metastore-db
+    environment:
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+      POSTGRES_DB: metastore
+    ports:
+      - "5432:5432"
+    volumes:
+      - hive-metastore-db-data:/var/lib/postgresql/data
+
+volumes:
+  hive-metastore-db-data:
