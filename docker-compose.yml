@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   zookeeper:
@@ -72,3 +71,4 @@ services:
 
 volumes:
   hive-metastore-db-data:
+  kafka-data:

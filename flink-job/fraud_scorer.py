@@ -10,6 +10,8 @@ from pyflink.common.typeinfo import Types as TypeInfoTypes
 from pyflink.datastream.connectors.kafka import KafkaSource, KafkaOffsetsInitializer
 from pyflink.common.serialization import SimpleStringSchema
 from pyflink.datastream.state import ValueStateDescriptor
+from pyflink.datastream.connectors.file_system import FileSink, OutputFileConfig
+from pyflink.common.serialization import Encoder
 
 
 class FraudScorer(KeyedProcessFunction):
@@ -71,6 +73,7 @@ def is_scorable_type(raw_json):
 def main():
     env = StreamExecutionEnvironment.get_execution_environment()
     env.set_parallelism(1)
+    env.enable_checkpointing(10000)  # checkpoint every 10 seconds - finalizes FileSink output regularly
 
     jar_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lib")
     jar_dir_encoded = quote(jar_dir)
@@ -106,7 +109,21 @@ def main():
     keyed_stream = filtered_stream.key_by(extract_dest_key, key_type=Types.STRING())
     result_stream = keyed_stream.process(FraudScorer(), output_type=Types.STRING())
 
-    result_stream.print()
+    staging_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "staging")
+    os.makedirs(staging_dir, exist_ok=True)
+
+    file_sink = (
+        FileSink.for_row_format(staging_dir, Encoder.simple_string_encoder())
+        .with_output_file_config(
+            OutputFileConfig.builder()
+            .with_part_prefix("scored")
+            .with_part_suffix(".json")
+            .build()
+        )
+        .build()
+    )
+
+    result_stream.sink_to(file_sink)
 
     env.execute("fraud-scorer-full")
 
