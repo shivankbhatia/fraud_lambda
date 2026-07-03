@@ -4,6 +4,9 @@ __pycache__/
 .DS_Store
 data/*.csv
 data/*.zip
+data/staging/
+data/checkpoints/
+data/delta/
 models/*.pkl
 *.ipynb_checkpoints
 .ipynb_checkpoints/
