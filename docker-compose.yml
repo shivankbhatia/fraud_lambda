@@ -28,8 +28,7 @@ services:
       - kafka-data:/var/lib/kafka/data
 
   flink-jobmanager:
-    build: ./flink-job
-    image: fraud-lambda-flink:latest
+    image: flink:1.18.1-scala_2.12-java11
     container_name: flink-jobmanager
     ports:
       - "8081:8081"
@@ -42,8 +41,7 @@ services:
       - ./flink-job:/opt/flink-job
 
   flink-taskmanager:
-    build: ./flink-job
-    image: fraud-lambda-flink:latest
+    image: flink:1.18.1-scala_2.12-java11
     container_name: flink-taskmanager
     depends_on:
       - flink-jobmanager
@@ -69,6 +67,27 @@ services:
     volumes:
       - hive-metastore-db-data:/var/lib/postgresql/data
 
+  hive-metastore:
+      image: apache/hive:4.0.0
+      container_name: hive-metastore
+      depends_on:
+        - hive-metastore-db
+      ports:
+        - "9083:9083"
+      environment:
+        SERVICE_NAME: metastore
+        DB_DRIVER: postgres
+        SERVICE_OPTS: >-
+          -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
+          -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://hive-metastore-db:5432/metastore
+          -Djavax.jdo.option.ConnectionUserName=hive
+          -Djavax.jdo.option.ConnectionPassword=hive
+      volumes:
+        - hive-warehouse:/opt/hive/data/warehouse
+        - ./hive-config/postgresql-42.7.3.jar:/opt/hive/lib/postgresql-42.7.3.jar
+      mem_limit: 1g
+
 volumes:
   hive-metastore-db-data:
   kafka-data:
+  hive-warehouse:
