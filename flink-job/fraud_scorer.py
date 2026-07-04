@@ -39,6 +39,9 @@ class FraudScorer(KeyedProcessFunction):
         except Exception as e:
             yield f"PARSE ERROR: {e}"
             return
+        
+        # Composite join key matching the batch layer's txn_key (Day 5)
+        msg['txn_key'] = f"{msg['nameOrig']}|{msg['nameDest']}|{msg['step']}|{msg['amount']}"
 
         # --- stateful feature ---
         current_count = self.txn_count_state.value()
