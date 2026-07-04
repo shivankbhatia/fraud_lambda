@@ -19,6 +19,7 @@ builder = (
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
 )
 spark = configure_spark_with_delta_pip(builder).getOrCreate()
+spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
 spark.sparkContext.setLogLevel("WARN")
 
 base_dir = os.path.dirname(os.path.abspath(__file__))

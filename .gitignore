@@ -7,6 +7,7 @@ data/*.zip
 data/staging/
 data/checkpoints/
 data/delta/
+data/hive-warehouse/
 models/*.pkl
 *.ipynb_checkpoints
 .ipynb_checkpoints/
